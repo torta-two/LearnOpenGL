@@ -24,11 +24,13 @@
     <ClCompile Include="MyInput.cpp" />
     <ClCompile Include="MyShader.cpp" />
     <ClCompile Include="MyTools.cpp" />
+    <ClCompile Include="Object.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyInput.h" />
     <ClInclude Include="MyShader.h" />
     <ClInclude Include="MyTools.h" />
+    <ClInclude Include="Object.h" />
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
