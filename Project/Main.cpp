@@ -5,6 +5,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+using namespace glm;
+
 const char* vertexPath = "shader.vertex";
 const char* fragmentPath = "shader.fragment";
 
@@ -12,6 +14,7 @@ const unsigned int SCREEN_WIDTH = 512;
 const unsigned int SCREEN_HEIGHT = 512;
 
 unsigned int GetTexture(const char *imgPath, int index, GLenum warpMode, GLenum filterMode);
+mat4 CameraMove(vec3 &cameraPos, vec3 &cameraFront, vec3 &cameraUp);
 
 float vertices[] = {
 	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -57,10 +60,18 @@ float vertices[] = {
 	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
+float groundVertices[] = 
+{
+	-1,-1,-1,	
+	 1,-1,-1,
+	-1,-1, 1,
+	 1,-1, 1
+};
+
 unsigned int indices[] =
 {
-	   0, 1, 3, // first triangle
-	   1, 2, 3  // second triangle
+	   0, 1, 2, 
+	   1, 2, 3 
 };
 
 glm::vec3 cubePositions[] = {
@@ -84,15 +95,15 @@ int main()
 	unsigned int VBO, VAO, EBO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
+	//glGenBuffers(1, &EBO);
 
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	/*glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);*/
 
 	//解析顶点数据
 	//(一个属性就要解析一次，不然电脑傻乎乎的不知道你写的顶点数据啥意思！)
@@ -104,8 +115,6 @@ int main()
 	//param 6：该属性与开头的偏移量，void*类型，需要强制转换
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);						//vertex
 	glEnableVertexAttribArray(0);
-	//glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));		//color
-	//glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));		//texcoord	
 	glEnableVertexAttribArray(1);
 
@@ -114,86 +123,56 @@ int main()
 	unsigned int texture1 = GetTexture("wall.jpg", 0, GL_REPEAT, GL_LINEAR);
 	unsigned int texture2 = GetTexture("face.jpg", 1, GL_REPEAT, GL_LINEAR);
 
-	float x = 0, y = 0, z = -3.0;
-	float speed = 0.08f;
+	vec3 cameraPos = vec3(0.0f, 0.0f, 3.0f);
+	vec3 cameraFront = vec3(0.0f, 0.0f, -1.0f);
+	vec3 cameraUp = vec3(0.0f, 1.0f, 0.0f);
+
 	while (!glfwWindowShouldClose(window))
 	{
 		glClearColor(0.8f, 0.9f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		if (Input::GetKeyDown(GLFW_KEY_LEFT))
-		{
-			x += speed;
-		}
-
-		if (Input::GetKeyDown(GLFW_KEY_RIGHT))
-		{
-			x -= speed;
-		}
-
-		if (Input::GetKeyDown(GLFW_KEY_UP))
-		{
-			y -= speed;
-		}
-
-		if (Input::GetKeyDown(GLFW_KEY_DOWN))
-		{
-			y += speed;
-		}
-
-		if (Input::GetKeyDown(GLFW_KEY_W))
-		{
-			z += speed;
-		}
-
-		if (Input::GetKeyDown(GLFW_KEY_S))
-		{
-			z -= speed;
-		}
+		
 		//------------------------------------------------------------------
 
 		//glBindTexture(GL_TEXTURE_2D, texture1);
 		//glBindTexture(GL_TEXTURE_2D, texture2);
 
-		//矩阵的计算顺序与阅读顺序相反，vertex一定要在transform的右侧！
-		//先平移再旋转，旋转轴为自身中心
-		//先旋转再平移，旋转轴为窗口中心
-		//因为平移不会移动旋转的中心轴
 		shader.UseShader();
 		
-		glm::mat4 viewMatrix = glm::mat4(1.0f);
+		//glm::mat4 viewMatrix = glm::mat4(1.0f);
+		//viewMatrix = glm::translate(viewMatrix, glm::vec3(x, y, z));
+
 		glm::mat4 projMatrix = glm::mat4(1.0f);
-		//modelMatrix = glm::rotate(modelMatrix, glm::radians(-65.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		//modelMatrix = glm::rotate(modelMatrix, glm::radians(90.0f * (float)glfwGetTime()), glm::vec3(0.0f, 1.0f, 0.0f));
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(x, y, z));
 		//fov,aspeat,near,far
 		projMatrix = glm::perspective(glm::radians(45.0f), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f,100.0f);
 		
-		//shader.SetMatrix("modelMatrix", modelMatrix);
-		shader.SetMatrix("viewMatrix", viewMatrix);
+		/*Gram-Schmidt Process:
+		===========================================================
+		vec3 cameraPos = vec3(0.0f, 0.0f, 3.0f);
+		vec3 cameraTarget = vec3(0.0f, 0.0f, 0.0f);
+		vec3 cameraDirection = normalize(cameraPos - cameraTarget);
+		vec3 up = vec3(0.0f, 1.0f, 0.0f);
+		//先up后dir计算right为正，先up后dir计算right为负
+		vec3 right = normalize(cross(up, cameraDirection));
+		up = normalize(cross(cameraDirection, right));		
+		===========================================================*/
+
+
+		mat4 view = CameraMove(cameraPos, cameraFront, cameraUp);
+
+		shader.SetMatrix("viewMatrix", view);
 		shader.SetMatrix("projMatrix", projMatrix);
 		shader.SetInt("texture1", 0);
 		shader.SetInt("texture2", 1);
 		
-
-		glBindVertexArray(VAO);
 		for (int i = 0; i < 10; i++)
 		{
-			Camera camera;
-			camera.transform->position = glm::vec3(cubePositions[i]);
-			camera.transform->rotation = glm::vec3(45.0f+y, 0.0f, 0.0f);
-			camera.transform->scale = glm::vec3(2.0f, 1.0f, 1.5f);
-
-			/*glm::mat4 modelMatrix = glm::mat4(1.0f);
-			modelMatrix = glm::translate(modelMatrix, cubePositions[i]);
-			modelMatrix = glm::rotate(modelMatrix, glm::radians(20.0f * i), glm::vec3(1.0f, 0.3f, 0.5f));
-
-			if (i % 3 == 0)
-			{
-				modelMatrix = glm::rotate(modelMatrix, glm::radians(45.0f * (float)glfwGetTime()), glm::vec3(1.0f, 0.3f, 0.5f));
-			}*/
-
-			shader.SetMatrix("modelMatrix", camera.transform->GetMatrix());
+			glm::mat4 modelMatrix = glm::mat4(1.0f);
+			modelMatrix = glm::rotate(modelMatrix, glm::radians(45.0f * i), glm::vec3(0.0f, 1.0f, 0.0f));
+			modelMatrix = translate(modelMatrix, cubePositions[i]);
+			shader.SetMatrix("modelMatrix", modelMatrix);
+			glBindVertexArray(VAO);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 
@@ -207,6 +186,23 @@ int main()
 	glDeleteBuffers(1, &EBO);
 
 	return 0;
+}
+
+
+mat4 CameraMove(vec3 &cameraPos, vec3 &cameraFront, vec3 &cameraUp)
+{
+	float speed = 0.08f;
+
+	if (Input::GetKeyDown(GLFW_KEY_LEFT))
+		cameraPos -= speed * normalize(cross(cameraFront, cameraUp));
+	if (Input::GetKeyDown(GLFW_KEY_RIGHT))
+		cameraPos += speed * normalize(cross(cameraFront, cameraUp));
+	if (Input::GetKeyDown(GLFW_KEY_UP))
+		cameraPos += speed * cameraFront;
+	if (Input::GetKeyDown(GLFW_KEY_DOWN))
+		cameraPos -= speed * cameraFront;
+
+	return lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 }
 
 
