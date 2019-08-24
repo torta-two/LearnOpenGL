@@ -1,4 +1,4 @@
-#include "MyInput.h"
+#include "Input.h"
 
 GLFWwindow* Input::window;
 

@@ -6,7 +6,7 @@
 #include <GLM/glm.hpp>
 #include <GLM/gtc/type_ptr.hpp>
 #include <GLM/gtc/matrix_transform.hpp>
-#include "MyInput.h"
+#include "Input.h"
 
 class Shader
 {

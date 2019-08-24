@@ -1,6 +1,7 @@
-#include "MyTools.h"
-#include "MyShader.h"
-#include "MyInput.h"
+#include "Tools.h"
+#include "Shader.h"
+#include "Input.h"
+#include "Camera.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -174,19 +175,25 @@ int main()
 		shader.SetInt("texture1", 0);
 		shader.SetInt("texture2", 1);
 		
+
 		glBindVertexArray(VAO);
 		for (int i = 0; i < 10; i++)
 		{
-			glm::mat4 modelMatrix = glm::mat4(1.0f);
+			Camera camera;
+			camera.transform->position = glm::vec3(cubePositions[i]);
+			camera.transform->rotation = glm::vec3(45.0f+y, 0.0f, 0.0f);
+			camera.transform->scale = glm::vec3(2.0f, 1.0f, 1.5f);
+
+			/*glm::mat4 modelMatrix = glm::mat4(1.0f);
 			modelMatrix = glm::translate(modelMatrix, cubePositions[i]);
 			modelMatrix = glm::rotate(modelMatrix, glm::radians(20.0f * i), glm::vec3(1.0f, 0.3f, 0.5f));
 
 			if (i % 3 == 0)
 			{
 				modelMatrix = glm::rotate(modelMatrix, glm::radians(45.0f * (float)glfwGetTime()), glm::vec3(1.0f, 0.3f, 0.5f));
-			}
+			}*/
 
-			shader.SetMatrix("modelMatrix", modelMatrix);
+			shader.SetMatrix("modelMatrix", camera.transform->GetMatrix());
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 
