@@ -2,13 +2,13 @@
 #include "Shader.h"
 #include "Input.h"
 #include "Camera.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "Model.h"
 
 using namespace glm;
 
-const char* vertexPath = "shader.vertex";
-const char* fragmentPath = "shader.fragment";
+const char* vertexPath = "Shader/Vertex.shader";
+const char* fragmentPath = "Shader/Fragment.shader";
+const string modelPath = "Resources/Objects/nanosuit/nanosuit.obj";
 
 const unsigned int SCREEN_WIDTH = 800;
 const unsigned int SCREEN_HEIGHT = 600;
@@ -29,7 +29,9 @@ float myYaw = -90.0f;
 
 float fov = 45.0f;
 
-unsigned int GetTexture(const char *imgPath, int index, GLenum warpMode, GLenum filterMode);
+vec3 ambientLightColor = vec3(1, 1, 1);
+float ambientStrength = 0.3f;
+
 mat4 CameraMove(vec3 &cameraPos, vec3 &cameraFront, vec3 &cameraUp);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xOffset, double yOffset);
@@ -108,58 +110,23 @@ glm::vec3 cubePositions[] = {
 int main()
 {
 	GLFWwindow* window = InitOpenGL(SCREEN_WIDTH, SCREEN_HEIGHT);
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 
 	Shader shader(vertexPath, fragmentPath);
-
-	unsigned int VBO, VAO, EBO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	//glGenBuffers(1, &EBO);
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	/*glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);*/
-
-	//解析顶点数据
-	//(一个属性就要解析一次，不然电脑傻乎乎的不知道你写的顶点数据啥意思！)
-	//param 1：在vertex shader里的location
-	//param 2：顶点该属性分量个数
-	//param 3：顶点该属性分量数据类型
-	//param 4：是否normalize数据（unsigned映射到(0,1),signed映射到(-1,1)）
-	//param 5：步长(stride),即一个顶点与下一个顶点之间的数据间隔
-	//param 6：该属性与开头的偏移量，void*类型，需要强制转换
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);						//vertex
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));		//texcoord	
-	glEnableVertexAttribArray(1);
-
+	Model model(modelPath);
 	glEnable(GL_DEPTH_TEST);
-
-	unsigned int texture1 = GetTexture("wall.jpg", 0, GL_REPEAT, GL_LINEAR);
-	unsigned int texture2 = GetTexture("face.jpg", 1, GL_REPEAT, GL_LINEAR);
-
-	shader.UseShader();
-	shader.SetInt("texture1", 0);
-	shader.SetInt("texture2", 1);
-
 
 	while (!glfwWindowShouldClose(window))
 	{
-		glClearColor(0.8f, 0.9f, 1.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 		float currentFrame = (float)glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
-		//------------------------------------------------------------------
+		glClearColor(0.8f, 0.9f, 1.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		shader.UseShader();
 
 		/*Gram-Schmidt Process:
@@ -178,27 +145,21 @@ int main()
 
 		mat4 viewMatrix = CameraMove(cameraPos, cameraFront, cameraUp);
 		shader.SetMatrix("viewMatrix", viewMatrix);
-		glBindVertexArray(VAO);
 
-		for (int i = 0; i < 10; i++)
-		{
-			glm::mat4 modelMatrix = glm::mat4(1.0f);
-			modelMatrix = translate(modelMatrix, cubePositions[i]);
-			float angle = 20.0f * i;
-			modelMatrix = glm::rotate(modelMatrix, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-			shader.SetMatrix("modelMatrix", modelMatrix);
-			
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
+		glm::mat4 modelMatrix = mat4(1.0f);
+		modelMatrix = translate(modelMatrix, vec3(0.0f, -1.75f, 0.0f));
+		modelMatrix = scale(modelMatrix, vec3(0.15f, 0.15f, 0.15f));
+		shader.SetMatrix("modelMatrix", modelMatrix);
+		
+		shader.SetFloat("AmbientStrength", ambientStrength);
+		shader.SetVec3("AmbientLightColor", ambientLightColor);
+
+		model.Draw(shader);
 
 		//------------------------------------------------------------------
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
-
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
-	glDeleteBuffers(1, &EBO);
 
 	return 0;
 }
@@ -266,33 +227,5 @@ void scroll_callback(GLFWwindow* window, double xOffset, double yOffset)
 		fov = 45.0f;
 }
 
-unsigned int GetTexture(const char *imgPath, int index, GLenum warpMode, GLenum filterMode)
-{
-	unsigned int texture;
-	glGenTextures(1, &texture);
-	glActiveTexture(GL_TEXTURE0 + index);
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, warpMode);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, warpMode);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, warpMode);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filterMode);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filterMode);
-	
-	int width, height, nrChannels;
-	stbi_set_flip_vertically_on_load(true);
-	unsigned char *data = stbi_load(imgPath, &width, &height, &nrChannels, 0);
-	if (data)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else
-	{
-		cout << "图片加载失败！ Failed to load image！" << endl;
-	}
-	stbi_image_free(data);
-
-	return texture;
-}
 
 

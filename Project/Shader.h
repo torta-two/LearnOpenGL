@@ -18,6 +18,9 @@ public:
 	void SetFloat(const string &valueName, float value) const;
 	void SetBool(const string &valueName, bool value) const;
 	void SetInt(const string &valueName, int value) const;
+	void SetVec4(const string &valueName, glm::vec4 value) const;
+	void SetVec3(const string &valueName, glm::vec3 value) const;
+	void SetVec2(const string &valueName, glm::vec2 value) const;
 	void SetMatrix(const string &name, glm::mat4 value) const;
 	
 private:

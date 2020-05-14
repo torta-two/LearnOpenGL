@@ -34,6 +34,21 @@ void Shader::SetInt(const string &name, int value) const
 	glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
 }
 
+void Shader::SetVec4(const string &name, glm::vec4 value) const
+{
+	glUniform4f(glGetUniformLocation(ID, name.c_str()), value.x, value.y, value.z, value.w);
+}
+
+void Shader::SetVec3(const string &name, glm::vec3 value) const
+{
+	glUniform3f(glGetUniformLocation(ID, name.c_str()), value.x, value.y, value.z);
+}
+
+void Shader::SetVec2(const string &name, glm::vec2 value) const
+{
+	glUniform2f(glGetUniformLocation(ID, name.c_str()), value.x, value.y);
+}
+
 void Shader::SetMatrix(const string &name, glm::mat4 value) const
 {
 	unsigned int transLocation = glGetUniformLocation(ID, name.c_str());
