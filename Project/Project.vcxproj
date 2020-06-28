@@ -101,8 +101,8 @@
     <LibraryPath>D:\Torta\Desktop\OpenGL\VSExtensions\Libs;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>D:\Torta\Desktop\OpenGL\VSExtensions\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\Torta\Desktop\OpenGL\VSExtensions\Libs;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\Torta\Desktop\Study\S OpenGL\Extensions\includes;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\Torta\Desktop\Study\S OpenGL\Extensions\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -124,7 +124,7 @@
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>glfw3.lib;opengl32.lib;assimp-vc140-mt.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
